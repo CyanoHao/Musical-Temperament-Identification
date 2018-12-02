@@ -42,16 +42,19 @@ def get_freq(note, table):
 	base = 440 / table[9] * 2**(group - 4)
 	return round(base * table[note % 12] * 1000)
 
-mid = mido.MidiFile('燕园情.mid')
+def get_note_list(filename):
+	mid = mido.MidiFile(filename)
+	notelist = []
+	for msg in mid:
+		if isinstance(msg, mido.messages.messages.Message):
+			d = msg.dict()
+			if d['type'] == 'note_off':
+				notelist.extend(msg.note for _ in range(round(msg.time / 0.125)))
+	return notelist
 
-notelist = []
+def get_freq_list(notelist, table):
+	return list(map(lambda n: get_freq(n, table), notelist))
 
-for msg in mid:
-	if isinstance(msg, mido.messages.messages.Message):
-		d = msg.dict()
-		if d['type'] == 'note_on' and d['velocity']:
-			notelist.append(d['note'])
-
-print(notelist)
-
-print(list(map(lambda n: get_freq(n, et_table), notelist)))
+if __name__ == '__main__':
+	print(get_note_list('alphabet.mid'))
+	print(get_freq_list(get_note_list('alphabet.mid'), et_table))

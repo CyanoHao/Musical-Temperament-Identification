@@ -1,4 +1,4 @@
-for m in alphabet 歌唱祖国
+for m in alphabet 歌唱祖国 燕园情
 do
 	for t in 十二平均律 五度相生律 纯律
 	do
