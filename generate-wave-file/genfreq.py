@@ -45,11 +45,19 @@ def get_freq(note, table):
 def get_note_list(filename):
 	mid = mido.MidiFile(filename)
 	notelist = []
-	for msg in mid:
-		if isinstance(msg, mido.messages.messages.Message):
-			d = msg.dict()
-			if d['type'] == 'note_off':
-				notelist.extend(msg.note for _ in range(round(msg.time / 0.125)))
+	msglist = list(mid)
+	for i in range(len(msglist)):
+		if msglist[i].type == 'note_off':
+			msg = msglist[i]
+			note = msg.note
+			time = msg.time
+			j = i - 1
+			while (1):
+				if msglist[j].note == note:
+					break
+				time += msglist[j].time
+				j -= 1
+			notelist.extend(note for _ in range(round(time / 0.125)))
 	return notelist
 
 def get_freq_list(notelist, table):
