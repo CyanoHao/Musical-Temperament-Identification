@@ -63,9 +63,9 @@ def read_wave(filename):
 			cent = ratio_to_cent(freq_in_hertz / 440)
 			cent_hist[cent] += spectum[i]
 
-	fig, ax = plt.subplots()
-	ax.plot(list(range(1200)), cent_hist)
-	plt.show()
+	# fig, ax = plt.subplots()
+	# ax.plot(list(range(1200)), cent_hist)
+	# plt.show()
 
 	return cent_hist
 
