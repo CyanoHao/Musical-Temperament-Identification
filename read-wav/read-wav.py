@@ -1,37 +1,74 @@
 import wave
-import struct
-from scipy import *
-#from pylab import *
- 
-#读取wav文件，我这儿读了个自己用python写的音阶的wav
-filename = '1.wav'
-wavefile = wave.open(filename, 'r') # open for writing
- 
-#读取wav文件的四种信息的函数。期中numframes表示一共读取了几个frames，在后面要用到滴。
-nchannels = wavefile.getnchannels()
-sample_width = wavefile.getsampwidth()
-framerate = wavefile.getframerate()
-numframes = wavefile.getnframes()
- 
-print("channel",nchannels)
-print("sample_width",sample_width)
-print("framerate",framerate)
-print("numframes",numframes)
- 
-#建一个y的数列，用来保存后面读的每个frame的amplitude。
-y = zeros(numframes)
- 
-#for循环，readframe(1)每次读一个frame，取其前两位，是左声道的信息。右声道就是后两位啦。
-#unpack是struct里的一个函数，用法详见http://docs.python.org/library/struct.html。简单说来就是把＃packed的string转换成原来的数据，无论是什么样的数据都返回一个tuple。这里返回的是长度为一的一个
-#tuple，所以我们取它的第零位。
-for i in range(numframes):
-    val = wavefile.readframes(1)
-    left = val[0:2]
-#right = val[2:4]
-    v = struct.unpack('h', left )[0]
-    y[i] = v
- 
-#framerate就是44100，文件初读取的值。然后本程序最关键的一步！specgram！实在太简单了。。。
-Fs = framerate
-specgram(y, NFFT=1024, Fs=Fs, noverlap=900)
-show()
+import numpy as np
+import math
+
+import matplotlib.pyplot as plt
+
+def ratio_to_cent(num):
+	decpart = num - math.floor(num)
+	cent = int(round(decpart * 1200))
+	if cent == 1200:
+		cent = 0
+	return cent
+
+def read_wave(filename):
+	#读取wav文件，我这儿读了个自己用python写的音阶的wav
+	wavefile = wave.open(filename, 'r') # open for writing
+	
+	#读取wav文件的四种信息的函数。期中numframes表示一共读取了几个frames，在后面要用到滴。
+	nchannels = wavefile.getnchannels()
+	sample_width = wavefile.getsampwidth()
+	framerate = wavefile.getframerate()
+	numframes = wavefile.getnframes()
+	
+	bytes_per_frame = nchannels * sample_width
+
+	# print("channel",nchannels)
+	# print("sample_width",sample_width)
+	# print("framerate",framerate)
+	# print("numframes",numframes)
+
+	# 每个 block 3 秒钟，频谱分辨率为 1/3 Hz	
+	frames_per_block = int(framerate * 3)
+	blocks = int(numframes / frames_per_block)
+
+	freqs = np.fft.fftfreq(frames_per_block)
+	spectum = list(0 for _ in range(frames_per_block))
+	spectum = np.array(freqs)
+
+	# 对每个 block 做 FFT，将所得频谱叠加
+	for _ in range(blocks):
+		amps = list(0 for _ in range(frames_per_block))
+		buffer = wavefile.readframes(frames_per_block)
+		for j in range(frames_per_block):
+			ch0 = buffer[bytes_per_frame * j:bytes_per_frame * j + sample_width]
+			amps[j] = int.from_bytes(ch0, byteorder = 'little', signed = True)
+
+		data = np.array(amps)
+		w = np.fft.fft(data)
+		spectum += np.abs(w)
+
+		# # Find the peak in the coefficients
+		# idx = np.argmax(np.abs(w))
+		# freq = freqs[idx]
+		# freq_in_hertz = abs(freq * framerate)
+		# print(freq_in_hertz)
+
+	cent_hist = list(0 for _ in range(1200))
+
+	# 取 110 Hz 到 1760 Hz 转换成音分（A4 上下各 2 个八度）
+	for i in range(frames_per_block):
+		freq_in_hertz = freqs[i] * framerate
+		if freq_in_hertz >= 110 and freq_in_hertz <= 1760:
+			cent = ratio_to_cent(freq_in_hertz / 440)
+			cent_hist[cent] += spectum[i]
+
+	fig, ax = plt.subplots()
+	ax.plot(list(range(1200)), cent_hist)
+	plt.show()
+
+	return cent_hist
+
+
+if __name__ == '__main__':
+	print(read_wave('歌唱祖国-十二平均律.wav'))
