@@ -16,10 +16,9 @@ def ratio_to_cent(num):
 	return cent
 
 def read_wave(filename, start = 0, end = 1):
-	#读取wav文件，我这儿读了个自己用python写的音阶的wav
-	wavefile = wave.open(filename, 'r') # open for writing
+	wavefile = wave.open(filename, 'r') # open for reading
 	
-	#读取wav文件的四种信息的函数。期中numframes表示一共读取了几个frames，在后面要用到滴。
+	#读取wav文件的四种信息的函数。期中numframes表示一共读取了几个frames。
 	nchannels = wavefile.getnchannels()
 	sample_width = wavefile.getsampwidth()
 	framerate = wavefile.getframerate()
@@ -58,7 +57,7 @@ def read_wave(filename, start = 0, end = 1):
 		# freq_in_hertz = abs(freq * framerate)
 		# print(freq_in_hertz)
 
-	cent_hist = list(0 for _ in range(1200))
+	cent_hist = list(float(0) for _ in range(1200))
 
 	# 取 110 Hz 到 1760 Hz 转换成音分（A4 上下各 2 个八度）
 	for i in range(frames_per_block):
@@ -67,30 +66,54 @@ def read_wave(filename, start = 0, end = 1):
 			cent = ratio_to_cent(freq_in_hertz / 440)
 			cent_hist[cent] += spectum[i]
 
-	# fig, ax = plt.subplots()
-	# ax.plot(list(range(1200)), cent_hist)
-	# plt.show()
+	# normalize cent_hist
+	cent_hist_total = float(0)
+	for i in range(len(cent_hist)):
+		cent_hist_total += cent_hist[i]
 
+	for i in range(len(cent_hist)):
+		cent_hist[i] = cent_hist[i]/cent_hist_total
+
+	'''
+	fig, ax = plt.subplots()
+	ax.plot(list(range(1200)), cent_hist)
+	plt.show()
+	print(cent_hist_total)
+	'''
 	return cent_hist
+#训练集文件名和测试集文件名
+filename_list = ['girigiri-十二平均律.wav', 'girigiri-五度相生律.wav', 'girigiri-纯律.wav', '歌唱祖国-十二平均律.wav', '歌唱祖国-五度相生律.wav', '歌唱祖国-纯律.wav', 'alphabet-十二平均律.wav', 'alphabet-五度相生律.wav', 'alphabet-纯律.wav','燕园情-十二平均律.wav', '燕园情-五度相生律.wav', '燕园情-纯律.wav']
+filename_list_testing = ['girigiri-十二平均律.wav', 'girigiri-五度相生律.wav', 'girigiri-纯律.wav', '歌唱祖国-十二平均律.wav', '歌唱祖国-五度相生律.wav', '歌唱祖国-纯律.wav', 'alphabet-十二平均律.wav', 'alphabet-五度相生律.wav', 'alphabet-纯律.wav','燕园情-十二平均律.wav', '燕园情-五度相生律.wav', '燕园情-纯律.wav']
+#分段个数
+training_segment = 3
+testing_segment = 2
+segment = training_segment + testing_segment
 
-filename_list = ['girigiri-十二平均律.wav', 'girigiri-五度相生律.wav', 'girigiri-纯律.wav', '歌唱祖国-十二平均律.wav', '歌唱祖国-五度相生律.wav', '歌唱祖国-纯律.wav', 'alphabet-十二平均律.wav', 'alphabet-五度相生律.wav', 'alphabet-纯律.wav']
-filename_list_testing = ['燕园情-十二平均律.wav', '燕园情-五度相生律.wav', '燕园情-纯律.wav']
-segment = 20
-training_data = [0] * len(filename_list) * (segment - 2)
-training_label = [0] * len(filename_list) * (segment - 2)
+training_data = [0] * len(filename_list) * training_segment
+training_label = [0] * len(filename_list) * training_segment
 
 for i in range(len(filename_list)):
-	for j in range(segment - 2):
-		training_data[i * (segment - 2) + j] = read_wave(filename_list[i], float(j)/float(segment), float(j + 1)/float(segment))
-		training_label[i * (segment - 2) + j] = i % 3
+	for j in range(training_segment):
+		training_data[i * training_segment + j] = read_wave(filename_list[i], float(j)/float(segment), float(j + 1)/float(segment))
+		training_label[i * training_segment + j] = i % 3
 
-testing_data = [0] * len(filename_list_testing)
+testing_data = [0] * len(filename_list_testing) * testing_segment
+testing_label = [0] * len(filename_list_testing) * testing_segment
 for i in range(len(filename_list_testing)):
-	testing_data[i] = read_wave(filename_list_testing[i], 0, 1)
+	for j in range(testing_segment):
+		testing_data[i * testing_segment + j] = read_wave(filename_list_testing[i], float(training_segment + j)/float(segment), float(training_segment + j + 1)/float(segment))
+		testing_label[i * testing_segment + j] = i % 3
 
 clf = svm.SVC(gamma='scale')
 clf.fit(training_data, training_label)
 
-for i in range(len(filename_list_testing)):
-	print (clf.predict([testing_data[i]]))
+correct_count = 0
+predict = clf.predict(testing_data)
+print (predict)
+
+for i in range(len(filename_list_testing) * 2):
+	if(predict[i] == testing_label[i]):
+		print('correct')
+		correct_count += 1
+print('correct count',correct_count)
 

@@ -53,7 +53,7 @@ def read_wave(filename):
 		# freq_in_hertz = abs(freq * framerate)
 		# print(freq_in_hertz)
 
-	cent_hist = list(0 for _ in range(1200))
+	cent_hist = list(float(0) for _ in range(1200))
 
 	# 取 110 Hz 到 1760 Hz 转换成音分（A4 上下各 2 个八度）
 	for i in range(frames_per_block):
