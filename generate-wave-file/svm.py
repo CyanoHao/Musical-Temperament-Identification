@@ -26,7 +26,7 @@ training_data = [0 for i in range(6)]
 training_label = [0 for i in range(6)]
 
 testing_data = [0 for i in range(3)]
-testing_label = [0 for i in range(3)]
+testing_label = [-1 for i in range(3)]
 
 for i in range(2):
 	training_data[i * 3 + 0] = freq2centhist(et_freqs[120 * i + 0 :120 * i + 120])
@@ -40,12 +40,10 @@ i = 2
 testing_data[0] = freq2centhist(et_freqs[120 * i + 0 :120 * i + 120])
 testing_data[1] = freq2centhist(ji_freqs[120 * i + 0 :120 * i + 120])
 testing_data[2] = freq2centhist(pt_freqs[120 * i + 0 :120 * i + 120])
-testing_label[0] = 0
-testing_label[1] = 1
-testing_label[2] = 2
+
 
 
 clf = svm.SVC(gamma='scale')
 clf.fit(training_data, training_label)
 for i in range(3):
-	print (clf.predict([testing_data[2-i]]))
+	print (clf.predict([testing_data[i]]))

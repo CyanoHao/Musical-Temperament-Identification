@@ -1,3 +1,7 @@
+from sklearn import svm
+import math
+import collections
+
 import wave
 import numpy as np
 import math
@@ -11,8 +15,9 @@ def ratio_to_cent(num):
 		cent = 0
 	return cent
 
-def read_wave(filename):
-	wavefile = wave.open(filename, 'r') # open for reading
+def read_wave(filename, start = 0, end = 1):
+	#读取wav文件，我这儿读了个自己用python写的音阶的wav
+	wavefile = wave.open(filename, 'r') # open for writing
 	
 	#读取wav文件的四种信息的函数。期中numframes表示一共读取了几个frames，在后面要用到滴。
 	nchannels = wavefile.getnchannels()
@@ -36,7 +41,7 @@ def read_wave(filename):
 	spectum = np.array(freqs)
 
 	# 对每个 block 做 FFT，将所得频谱叠加
-	for _ in range(blocks):
+	for _ in range(int(blocks * start), int(blocks * end)):
 		amps = list(0 for _ in range(frames_per_block))
 		buffer = wavefile.readframes(frames_per_block)
 		for j in range(frames_per_block):
@@ -68,6 +73,24 @@ def read_wave(filename):
 
 	return cent_hist
 
+filename_list = ['girigiri-十二平均律.wav', 'girigiri-五度相生律.wav', 'girigiri-纯律.wav', '歌唱祖国-十二平均律.wav', '歌唱祖国-五度相生律.wav', '歌唱祖国-纯律.wav', 'alphabet-十二平均律.wav', 'alphabet-五度相生律.wav', 'alphabet-纯律.wav']
+filename_list_testing = ['燕园情-十二平均律.wav', '燕园情-五度相生律.wav', '燕园情-纯律.wav']
+segment = 20
+training_data = [0] * len(filename_list) * (segment - 2)
+training_label = [0] * len(filename_list) * (segment - 2)
 
-if __name__ == '__main__':
-	print(read_wave('歌唱祖国-十二平均律.wav'))
+for i in range(len(filename_list)):
+	for j in range(segment - 2):
+		training_data[i * (segment - 2) + j] = read_wave(filename_list[i], float(j)/float(segment), float(j + 1)/float(segment))
+		training_label[i * (segment - 2) + j] = i % 3
+
+testing_data = [0] * len(filename_list_testing)
+for i in range(len(filename_list_testing)):
+	testing_data[i] = read_wave(filename_list_testing[i], 0, 1)
+
+clf = svm.SVC(gamma='scale')
+clf.fit(training_data, training_label)
+
+for i in range(len(filename_list_testing)):
+	print (clf.predict([testing_data[i]]))
+
